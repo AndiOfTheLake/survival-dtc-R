@@ -419,3 +419,102 @@ ggsurvplot_df(fit = surv_wb, surv.geom = geom_line)
 
 
 
+
+```r
+# Look at a new data set of lung cancer patients
+str(dat)
+```
+
+```
+## 'data.frame':	228 obs. of  3 variables:
+##  $ time  : num  306 455 1010 210 883 ...
+##  $ status: num  2 2 1 2 2 1 2 2 2 2 ...
+##  $ sex   : Factor w/ 2 levels "male","female": 1 1 1 1 1 1 2 2 1 1 ...
+```
+
+```r
+# Estimate a Weibull model
+wbmod <- survreg(Surv(time, status) ~ sex, data = dat)
+coef(wbmod)
+```
+
+```
+## (Intercept)   sexfemale 
+##    5.884162    0.395578
+```
+
+## Compute Weibull model
+
+
+```r
+# Weibull model
+wbmod <- survreg(Surv(time, cens) ~ horTh, data = GBSG2)
+
+# Retrieve survival curve from model
+surv <- seq(.99, .01, by = -.01)
+t_yes <- predict(wbmod, type = "quantile", p = 1 - surv,
+  newdata = data.frame(horTh = "yes"))
+
+# Take a look at survival curve
+str(t_yes)
+```
+
+```
+##  num [1:99] 76.4 131.4 180.9 227.2 271.4 ...
+```
+
+Note that if we put `newdata = data.farme(horTh = 2)` in the above code, we would get an error.
+
+## Computing a Weibull model and the survival curves
+
+
+```r
+# Weibull model
+wbmod <- survreg(Surv(time, cens) ~ horTh + tsize, data = GBSG2)
+
+# Imaginary patients
+newdat <- expand.grid(
+  horTh = levels(GBSG2$horTh),
+  tsize = quantile(GBSG2$tsize, probs = c(0.25, 0.5, 0.75)))
+
+# Compute survival curves
+surv <- seq(.99, .01, by = -.01)
+t <- predict(wbmod, type = "quantile", p = 1 - surv,
+  newdata = newdat)
+
+# How many rows and columns does t have?
+dim(t)
+```
+
+```
+## [1]  6 99
+```
+
+```r
+# Each row of t corresponds to one covariate combination (one imaginary patient) and each column to one value of surv.
+```
+
+## Visualising a Weibull model
+
+
+```r
+# Use cbind() to combine the information in newdat with t
+surv_wbmod_wide <- cbind(newdat, t)
+  
+# Use melt() to bring the data.frame to long format
+library(reshape2)
+surv_wbmod <- melt(surv_wbmod_wide, id.vars = c("horTh", "tsize"), variable.name = "surv_id", value.name = "time")
+
+# Use surv_wbmod$surv_id to add the correct survival probabilities surv
+surv_wbmod$surv <- surv[as.numeric(surv_wbmod$surv_id)]
+
+# Add columns upper, lower, std.err, and strata to the data.frame
+surv_wbmod[, c("upper", "lower", "std.err", "strata")] <- NA
+
+# Plot the survival curves
+ggsurvplot_df(surv_wbmod, surv.geom = geom_line,
+  linetype = "horTh", color = "tsize", legend.title = NULL)
+```
+
+![](survival_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
+
