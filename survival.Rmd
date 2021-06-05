@@ -11,6 +11,10 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r echo=FALSE}
+knitr::read_chunk('survival.R')
+```
+
 ```{r}
 # {r, echo = FALSE, results='hide'}
 # if we used both 'echo=TRUE' and 'results=hide' the pipe would not work properly
@@ -205,5 +209,11 @@ surv_wb <- data.frame(time = t, surv = surv,
 
 # Plot
 ggsurvplot_df(fit = surv_wb, surv.geom = geom_line)
+```
+
+## Interpreting coefficents
+
+```{r, interp coef, echo=FALSE}
+# load a dataset of lung cancer patients
 ```
 

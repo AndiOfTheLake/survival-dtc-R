@@ -1,11 +1,13 @@
 ---
 title: "Survival Analysis in R"
 author: "Andi"
-Last updated: "04 June, 2021"
+Last updated: "05 June, 2021"
 output: 
   html_document: 
     keep_md: yes
 ---
+
+
 
 
 
@@ -115,7 +117,7 @@ num_cens
 barplot(num_cens)
 ```
 
-![](survival_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+![](survival_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 ## Using the Surv() function for GBSG2
 
@@ -199,7 +201,7 @@ cens_employ_ft
 barplot(cens_employ_ft)
 ```
 
-![](survival_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+![](survival_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 ```r
 # Create Surv-Object
@@ -299,7 +301,7 @@ ggsurvplot_combine(list(correct = km, wrong = km_wrong))
 ## Please use `select()` instead.
 ```
 
-![](survival_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](survival_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
 ## Estimating and visualizing a survival curve
 
@@ -312,21 +314,21 @@ km <- survfit(Surv(time, cens) ~ 1, data = GBSG2)
 ggsurvplot(km)
 ```
 
-![](survival_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+![](survival_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
 ```r
 # add the risk table to plot
 ggsurvplot(km, risk.table = TRUE)
 ```
 
-![](survival_files/figure-html/unnamed-chunk-9-2.png)<!-- -->
+![](survival_files/figure-html/unnamed-chunk-10-2.png)<!-- -->
 
 ```r
 # add a line showing the median survival time
 ggsurvplot(km, risk.table = TRUE, surv.median.line = "hv")
 ```
 
-![](survival_files/figure-html/unnamed-chunk-9-3.png)<!-- -->
+![](survival_files/figure-html/unnamed-chunk-10-3.png)<!-- -->
 
 ## Estimating median survival from a Weibull model
 
@@ -411,5 +413,9 @@ surv_wb <- data.frame(time = t, surv = surv,
 ggsurvplot_df(fit = surv_wb, surv.geom = geom_line)
 ```
 
-![](survival_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+![](survival_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+
+## Interpreting coefficents
+
+
 
