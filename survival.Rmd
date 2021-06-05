@@ -1,0 +1,94 @@
+---
+title: "Survival Analysis in R"
+author: "Andi"
+Last updated: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# {r, echo = FALSE, results='hide'}
+# if we used both 'echo=TRUE' and 'results=hide' the pipe would not work properly
+# if we used 'echo = FALSE' and 'results=hide' we would have only messages (i.e. attaching package) If we don't want them we set 'error = FALSE', 'warning = FALSE', and 'message = FALSE'.
+library(dplyr)
+```
+
+```{r}
+# package for analysis
+library(survival)
+
+# package for visualization
+library(survminer)
+
+# time to death of 686 breast cancer patients
+data(GBSG2, package = "TH.data")
+
+# time to re-employment of 3343 unemployed patients
+data(UnempDur, package = "Ecdat")
+```
+
+# Introducing the GBSG2 dataset
+
+```{r}
+# Check out the help page for this dataset
+# help(GBSG2, package = "TH.data")
+
+# Look at the summary of the dataset
+summary(GBSG2)
+```
+
+## Digging into the GBSG2 dataset 1
+
+
+```{r}
+# Count censored and uncensored data
+num_cens <- table(GBSG2$cens)
+num_cens
+
+# Create barplot of censored and uncensored data
+barplot(num_cens)
+```
+
+## Using the Surv() function for GBSG2
+
+```{r}
+# Create Surv-Object
+sobj <- Surv(GBSG2$time, GBSG2$cens)
+
+# Look at 10 first elements
+sobj[1:10]
+GBSG2$time[1:10]
+GBSG2$cens[1:10]
+
+# Look at summary
+summary(sobj)
+
+# Look at structure
+str(sobj)
+```
+
+## The UnempDur dataset
+
+```{r}
+# Load the UnempDur data
+data(UnempDur, package = "Ecdat")
+
+# Count censored and uncensored data
+cens_employ_ft <- table(UnempDur$censor1)
+cens_employ_ft
+
+# Create barplot of censored and uncensored data
+barplot(cens_employ_ft)
+
+# Create Surv-Object
+sobj <- Surv(UnempDur$spell, UnempDur$censor1)
+
+# Look at 10 first elements
+sobj[1:10]
+```
+
