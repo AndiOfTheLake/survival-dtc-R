@@ -1,0 +1,44 @@
+---
+title: "Model plots"
+author: "Andi"
+Last updated: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE}
+knitr::read_chunk('survival.R')
+```
+
+```{r}
+# {r, echo = FALSE, results='hide'}
+# if we used both 'echo=TRUE' and 'results=hide' the pipe would not work properly
+# if we used 'echo = FALSE' and 'results=hide' we would have only messages (i.e. attaching package) If we don't want them we set 'error = FALSE', 'warning = FALSE', and 'message = FALSE'.
+library(dplyr)
+```
+
+```{r}
+# package for analysis
+library(survival)
+
+# package for visualization
+library(survminer)
+
+# time to death of 686 breast cancer patients
+data(GBSG2, package = "TH.data")
+
+# time to re-employment of 3343 unemployed patients
+data(UnempDur, package = "Ecdat")
+```
+
+## Plot a Weibul model
+
+```{r, plot weibul}
+
+```
+
