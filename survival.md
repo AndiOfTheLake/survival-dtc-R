@@ -518,3 +518,371 @@ ggsurvplot_df(surv_wbmod, surv.geom = geom_line,
 
 ![](survival_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
 
+## Computing a Weibull and a log-normal model
+
+
+```r
+# Weibull model
+wbmod <- survreg(Surv(time, cens) ~ horTh, data = GBSG2)
+
+# Log-Normal model
+lnmod <- survreg(Surv(time, cens) ~ horTh, data = GBSG2, dist = "lognormal")
+
+# Newdata
+newdat <- data.frame(horTh = levels(GBSG2$horTh))
+
+# Surv
+surv <- seq(.99, .01, by = -.01)
+
+# Survival curve from Weibull model and log-normal model
+wbt <- predict(wbmod, type = "quantile", p = 1 - surv, newdata = newdat)
+lnt <- predict(lnmod, type = "quantile", p = 1 - surv, newdata = newdat)
+```
+
+## Comparing Weibull and Log-Normal Model
+
+
+```r
+# Create a wide data frame containing hormonal therapy information and the survival curves for the Weibull and log-normal models.
+surv_wide <- rbind(cbind(newdat, wbt), cbind(newdat, lnt))
+surv_wide$dist <- c("weibull", "weibull", "lognormal", "lognormal")
+
+surv_wide[, 1:5]
+```
+
+```
+##   horTh         1        2        3        4
+## 1    no  56.22822  96.7997 133.2302 167.3203
+## 2   yes  76.35316 131.4458 180.9154 227.2068
+## 3    no 114.89760 155.1218 187.6650 216.5724
+## 4   yes 157.88615 213.1601 257.8792 297.6023
+```
+
+```r
+surv_wide[, ncol(surv_wide) - 4]
+```
+
+```
+## [1]  5003.958  6794.951 10233.507 14062.339
+```
+
+```r
+# Melt the data.frame into long format.
+surv_long <- melt(surv_wide, id.vars = c("horTh", "dist"), variable.name = "surv_id", value.name = "time")
+
+# Add column for the survival probabilities
+surv_long$surv <- surv[as.numeric(surv_long$surv_id)]
+
+# Add columns upper, lower, std.err, and strata contianing NA values
+surv_long[, c("upper", "lower", "std.err", "strata")] <- NA
+
+# Plot the survival curves
+ggsurvplot_df(surv_long, surv.geom = geom_line,
+              linetype = "horTh", color = "dist", legend.title = NULL)
+```
+
+![](survival_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
+
+## Computing a Cox model
+
+
+```r
+# Compute Cox model
+cxmod <- coxph(Surv(time, status) ~ performance, data = dat)
+
+# Show model coefficient
+coef(cxmod)
+```
+
+## Computing the survival curve from a Cox model
+
+
+```r
+# Cox model
+cxmod <- coxph(Surv(time, cens) ~ horTh + tsize, data = GBSG2)
+
+# Imaginary patients
+newdat <- expand.grid(
+  horTh = levels(GBSG2$horTh),
+  tsize = quantile(GBSG2$tsize, probs = c(0.25, 0.5, 0.75)))
+rownames(newdat) <- letters[1:6] # Those are stratum names, we need them.
+
+# explore newdat
+newdat
+```
+
+```
+##   horTh tsize
+## a    no    20
+## b   yes    20
+## c    no    25
+## d   yes    25
+## e    no    35
+## f   yes    35
+```
+
+```r
+# Compute survival curves
+cxsf <- survfit(cxmod, data = GBSG2, newdata = newdat, conf.type = "none")
+
+# look at he structure of cxsf
+str(cxsf)
+```
+
+```
+## List of 10
+##  $ n       : int 686
+##  $ time    : num [1:574] 8 15 16 17 18 29 42 46 57 63 ...
+##  $ n.risk  : num [1:574] 686 685 684 683 681 680 679 678 677 676 ...
+##  $ n.event : num [1:574] 0 0 0 0 0 0 0 0 0 0 ...
+##  $ n.censor: num [1:574] 1 1 1 2 1 1 1 1 1 1 ...
+##  $ surv    : num [1:574, 1:6] 1 1 1 1 1 1 1 1 1 1 ...
+##   ..- attr(*, "dimnames")=List of 2
+##   .. ..$ : NULL
+##   .. ..$ : chr [1:6] "a" "b" "c" "d" ...
+##  $ cumhaz  : num [1:574, 1:6] 0 0 0 0 0 0 0 0 0 0 ...
+##  $ std.err : num [1:574, 1:6] 0 0 0 0 0 0 0 0 0 0 ...
+##  $ logse   : logi TRUE
+##  $ call    : language survfit(formula = cxmod, newdata = newdat, conf.type = "none", data = GBSG2)
+##  - attr(*, "class")= chr [1:2] "survfitcox" "survfit"
+```
+
+```r
+# What does cxsf look ike? (not very useful!)
+cxsf
+```
+
+```
+## Call: survfit(formula = cxmod, newdata = newdat, conf.type = "none", 
+##     data = GBSG2)
+## 
+##     n events median
+## a 686    299   1814
+## b 686    299   2456
+## c 686    299   1684
+## d 686    299   2372
+## e 686    299   1388
+## f 686    299   2030
+```
+
+```r
+# Look at first 6 rows of cxsf$surv and time points
+head(cxsf$surv)
+```
+
+```
+##      a b c d e f
+## [1,] 1 1 1 1 1 1
+## [2,] 1 1 1 1 1 1
+## [3,] 1 1 1 1 1 1
+## [4,] 1 1 1 1 1 1
+## [5,] 1 1 1 1 1 1
+## [6,] 1 1 1 1 1 1
+```
+
+```r
+head(cxsf$time)
+```
+
+```
+## [1]  8 15 16 17 18 29
+```
+
+## Visualizing a Cox model
+
+`surv_summary()` is a function that returns a data.frame containing a nice summary from `survfit()` results, including columns like time (survival time) and surv (survival probability).
+
+
+```r
+# Compute data.frame needed for plotting
+surv_cxmod0 <- surv_summary(cxsf)
+str(surv_cxmod0)
+```
+
+```
+## 'data.frame':	3444 obs. of  9 variables:
+##  $ time    : num  8 15 16 17 18 29 42 46 57 63 ...
+##  $ n.risk  : num  686 685 684 683 681 680 679 678 677 676 ...
+##  $ n.event : num  0 0 0 0 0 0 0 0 0 0 ...
+##  $ n.censor: num  1 1 1 2 1 1 1 1 1 1 ...
+##  $ surv    : num  1 1 1 1 1 1 1 1 1 1 ...
+##  $ std.err : num  0 0 0 0 0 0 0 0 0 0 ...
+##  $ upper   : logi  NA NA NA NA NA NA ...
+##  $ lower   : logi  NA NA NA NA NA NA ...
+##  $ strata  : Factor w/ 6 levels "a","b","c","d",..: 1 1 1 1 1 1 1 1 1 1 ...
+##  - attr(*, "table")='data.frame':	6 obs. of  7 variables:
+##   ..$ records   : num [1:6] 686 686 686 686 686 686
+##   ..$ n.max     : num [1:6] 686 686 686 686 686 686
+##   ..$ n.start   : num [1:6] 686 686 686 686 686 686
+##   ..$ events    : num [1:6] 299 299 299 299 299 299
+##   ..$ *rmean    : num [1:6] 1671 1910 1617 1865 1507 ...
+##   ..$ *se(rmean): num [1:6] 41.4 51.4 39.2 49.4 34.9 ...
+##   ..$ median    : num [1:6] 1814 2456 1684 2372 1388 ...
+```
+
+```r
+dim(surv_cxmod0)
+```
+
+```
+## [1] 3444    9
+```
+
+```r
+head(surv_cxmod0)
+```
+
+```
+##   time n.risk n.event n.censor surv std.err upper lower strata
+## 1    8    686       0        1    1       0    NA    NA      a
+## 2   15    685       0        1    1       0    NA    NA      a
+## 3   16    684       0        1    1       0    NA    NA      a
+## 4   17    683       0        2    1       0    NA    NA      a
+## 5   18    681       0        1    1       0    NA    NA      a
+## 6   29    680       0        1    1       0    NA    NA      a
+```
+
+```r
+tail(surv_cxmod0)
+```
+
+```
+##      time n.risk n.event n.censor      surv   std.err upper lower strata
+## 3439 2539      6       0        1 0.3926874 0.1464721    NA    NA      f
+## 3440 2551      5       0        1 0.3926874 0.1464721    NA    NA      f
+## 3441 2556      4       0        1 0.3926874 0.1464721    NA    NA      f
+## 3442 2563      3       0        1 0.3926874 0.1464721    NA    NA      f
+## 3443 2612      2       0        1 0.3926874 0.1464721    NA    NA      f
+## 3444 2659      1       0        1 0.3926874 0.1464721    NA    NA      f
+```
+
+```r
+# Get a character vector of patient letters (patient IDs)
+pid <- as.character(surv_cxmod0$strata)
+length(pid)
+```
+
+```
+## [1] 3444
+```
+
+```r
+head(pid, 12)
+```
+
+```
+##  [1] "a" "a" "a" "a" "a" "a" "a" "a" "a" "a" "a" "a"
+```
+
+```r
+tail(pid, 12)
+```
+
+```
+##  [1] "f" "f" "f" "f" "f" "f" "f" "f" "f" "f" "f" "f"
+```
+
+```r
+# Multiple of the rows in newdat so that it fits with surv_cxmod0
+m_newdat <- newdat[pid, ]
+dim(m_newdat)
+```
+
+```
+## [1] 3444    2
+```
+
+```r
+head(m_newdat)
+```
+
+```
+##     horTh tsize
+## a      no    20
+## a.1    no    20
+## a.2    no    20
+## a.3    no    20
+## a.4    no    20
+## a.5    no    20
+```
+
+```r
+tail(m_newdat)
+```
+
+```
+##       horTh tsize
+## f.568   yes    35
+## f.569   yes    35
+## f.570   yes    35
+## f.571   yes    35
+## f.572   yes    35
+## f.573   yes    35
+```
+
+```r
+# Add patient info to data.frame
+surv_cxmod <- cbind(surv_cxmod0, m_newdat)
+
+# Plot
+ggsurvplot_df(surv_cxmod, linetype = "horTh", color = "tsize",
+  legend.title = NULL, censor = FALSE)
+```
+
+![](survival_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
+
+## Capstone: The Cox model
+
+
+
+
+```r
+# Compute Cox model and survival curves
+cxmod <- coxph(Surv(time, status) ~ performance, data = lung)
+new_lung <- data.frame(performance = c(60, 70, 80, 90))
+cxsf <- survfit(cxmod, data = lung, newdata = new_lung, conf.type = "none")
+
+# Use the summary of cxsf to take a vector of patient IDs
+surv_cxmod0 <- surv_summary(cxsf)
+pid <- as.character(surv_cxmod0$strata)
+
+# Duplicate rows in newdat to fit with surv_cxmod0 and add them in
+m_newdat <- new_lung[pid, , drop = FALSE]
+surv_cxmod <- cbind(surv_cxmod0, m_newdat)
+
+# Plot
+ggsurvplot_df(surv_cxmod, color = "performance", legend.title = NULL, censor = FALSE)
+```
+
+![](survival_files/figure-html/unnamed-chunk-24-1.png)<!-- -->
+
+## Capstone: Comparing survival curves
+
+
+```r
+# Compute Kaplan-Meier curve
+km <- survfit(Surv(time, status) ~ 1, data = lung)
+
+# Compute Cox model
+cxmod <- coxph(Surv(time, status) ~ performance, data = lung)
+
+# Compute Cox model survival curves
+new_lung <- data.frame(performance = c(60, 70, 80, 90))
+cxsf <- survfit(cxmod, data = lung, newdata = new_lung, conf.type = "none")
+
+# Plot Kaplan-Meier curve
+ggsurvplot(km, conf.int = FALSE)
+```
+
+![](survival_files/figure-html/unnamed-chunk-25-1.png)<!-- -->
+
+```r
+# Plot Cox model survival curves
+ggsurvplot(cxsf, censor = FALSE)
+```
+
+![](survival_files/figure-html/unnamed-chunk-25-2.png)<!-- -->
+
+## Where do we go from here?
+
+Check out CRAN task view.

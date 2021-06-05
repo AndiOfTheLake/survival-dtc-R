@@ -286,3 +286,165 @@ ggsurvplot_df(surv_wbmod, surv.geom = geom_line,
   linetype = "horTh", color = "tsize", legend.title = NULL)
 ```
 
+## Computing a Weibull and a log-normal model
+
+```{r}
+# Weibull model
+wbmod <- survreg(Surv(time, cens) ~ horTh, data = GBSG2)
+
+# Log-Normal model
+lnmod <- survreg(Surv(time, cens) ~ horTh, data = GBSG2, dist = "lognormal")
+
+# Newdata
+newdat <- data.frame(horTh = levels(GBSG2$horTh))
+
+# Surv
+surv <- seq(.99, .01, by = -.01)
+
+# Survival curve from Weibull model and log-normal model
+wbt <- predict(wbmod, type = "quantile", p = 1 - surv, newdata = newdat)
+lnt <- predict(lnmod, type = "quantile", p = 1 - surv, newdata = newdat)
+```
+
+## Comparing Weibull and Log-Normal Model
+
+```{r}
+# Create a wide data frame containing hormonal therapy information and the survival curves for the Weibull and log-normal models.
+surv_wide <- rbind(cbind(newdat, wbt), cbind(newdat, lnt))
+surv_wide$dist <- c("weibull", "weibull", "lognormal", "lognormal")
+
+surv_wide[, 1:5]
+surv_wide[, ncol(surv_wide) - 4]
+
+# Melt the data.frame into long format.
+surv_long <- melt(surv_wide, id.vars = c("horTh", "dist"), variable.name = "surv_id", value.name = "time")
+
+# Add column for the survival probabilities
+surv_long$surv <- surv[as.numeric(surv_long$surv_id)]
+
+# Add columns upper, lower, std.err, and strata contianing NA values
+surv_long[, c("upper", "lower", "std.err", "strata")] <- NA
+
+# Plot the survival curves
+ggsurvplot_df(surv_long, surv.geom = geom_line,
+              linetype = "horTh", color = "dist", legend.title = NULL)
+```
+
+## Computing a Cox model
+
+```{r, eval=FALSE}
+# Compute Cox model
+cxmod <- coxph(Surv(time, status) ~ performance, data = dat)
+
+# Show model coefficient
+coef(cxmod)
+```
+
+## Computing the survival curve from a Cox model
+
+```{r}
+# Cox model
+cxmod <- coxph(Surv(time, cens) ~ horTh + tsize, data = GBSG2)
+
+# Imaginary patients
+newdat <- expand.grid(
+  horTh = levels(GBSG2$horTh),
+  tsize = quantile(GBSG2$tsize, probs = c(0.25, 0.5, 0.75)))
+rownames(newdat) <- letters[1:6] # Those are stratum names, we need them.
+
+# explore newdat
+newdat
+
+# Compute survival curves
+cxsf <- survfit(cxmod, data = GBSG2, newdata = newdat, conf.type = "none")
+
+# look at he structure of cxsf
+str(cxsf)
+
+# What does cxsf look ike? (not very useful!)
+cxsf
+
+# Look at first 6 rows of cxsf$surv and time points
+head(cxsf$surv)
+head(cxsf$time)
+```
+
+## Visualizing a Cox model
+
+`surv_summary()` is a function that returns a data.frame containing a nice summary from `survfit()` results, including columns like time (survival time) and surv (survival probability).
+
+```{r}
+# Compute data.frame needed for plotting
+surv_cxmod0 <- surv_summary(cxsf)
+str(surv_cxmod0)
+dim(surv_cxmod0)
+head(surv_cxmod0)
+tail(surv_cxmod0)
+
+# Get a character vector of patient letters (patient IDs)
+pid <- as.character(surv_cxmod0$strata)
+length(pid)
+head(pid, 12)
+tail(pid, 12)
+
+# Multiple of the rows in newdat so that it fits with surv_cxmod0
+m_newdat <- newdat[pid, ]
+dim(m_newdat)
+head(m_newdat)
+tail(m_newdat)
+
+# Add patient info to data.frame
+surv_cxmod <- cbind(surv_cxmod0, m_newdat)
+
+# Plot
+ggsurvplot_df(surv_cxmod, linetype = "horTh", color = "tsize",
+  legend.title = NULL, censor = FALSE)
+```
+
+## Capstone: The Cox model
+
+```{r, capstone, echo=FALSE}
+
+```
+
+```{r}
+# Compute Cox model and survival curves
+cxmod <- coxph(Surv(time, status) ~ performance, data = lung)
+new_lung <- data.frame(performance = c(60, 70, 80, 90))
+cxsf <- survfit(cxmod, data = lung, newdata = new_lung, conf.type = "none")
+
+# Use the summary of cxsf to take a vector of patient IDs
+surv_cxmod0 <- surv_summary(cxsf)
+pid <- as.character(surv_cxmod0$strata)
+
+# Duplicate rows in newdat to fit with surv_cxmod0 and add them in
+m_newdat <- new_lung[pid, , drop = FALSE]
+surv_cxmod <- cbind(surv_cxmod0, m_newdat)
+
+# Plot
+ggsurvplot_df(surv_cxmod, color = "performance", legend.title = NULL, censor = FALSE)
+```
+
+## Capstone: Comparing survival curves
+
+```{r}
+# Compute Kaplan-Meier curve
+km <- survfit(Surv(time, status) ~ 1, data = lung)
+
+# Compute Cox model
+cxmod <- coxph(Surv(time, status) ~ performance, data = lung)
+
+# Compute Cox model survival curves
+new_lung <- data.frame(performance = c(60, 70, 80, 90))
+cxsf <- survfit(cxmod, data = lung, newdata = new_lung, conf.type = "none")
+
+# Plot Kaplan-Meier curve
+ggsurvplot(km, conf.int = FALSE)
+
+# Plot Cox model survival curves
+ggsurvplot(cxsf, censor = FALSE)
+```
+
+## Where do we go from here?
+
+Check out CRAN task view.
